@@ -7,7 +7,6 @@ from flask import Blueprint, Flask, request
 from flask.wrappers import Response
 from pydantic import BaseModel, ValidationError
 
-from .exceptions import NoRequestDataError
 from .utils import MaybeModel, get_maybe_model
 
 __author__ = "Bruno Lange"
@@ -37,9 +36,7 @@ def route(app: Union[Blueprint, Flask], path: str, **kwargs):
                     kw[arg] = maybe_model.cls.parse_obj(data)
                 except ValidationError:
                     if not maybe_model.optional:
-                        raise NoRequestDataError(
-                            f"Cannot build {maybe_model.cls}. Request has no data."
-                        )
+                        raise
 
             payload = fn(*args, **kw)
 
