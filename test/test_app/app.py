@@ -1,9 +1,11 @@
+from http import HTTPStatus
 from typing import Any, Optional
 
 from flask import Flask, make_response
 from flask_bind.decorators import route
+from pydantic import ValidationError
 
-from .models import Model
+from .models import Model, Node, NodePatch
 from .utils import extend
 
 __author__ = "Bruno Lange"
@@ -12,6 +14,11 @@ __license__ = "MIT"
 
 
 app = Flask(__name__)
+
+
+@app.errorhandler(ValidationError)
+def handle_validation_error(err: ValidationError):
+    return "Invalid request", HTTPStatus.BAD_REQUEST
 
 
 def echo(value: Any):
@@ -40,12 +47,12 @@ def echo_uuid(value):
 
 @route(app, "/model", methods=["POST"])
 def post_model(model: Model):
-    return {"id": 1, "name": model.name}, 201
+    return {"id": 1, "name": model.name}, HTTPStatus.CREATED
 
 
 @route(app, "/r/model", methods=["POST"])
 def post_model_reflect(model: Model):
-    return model, 201
+    return model, HTTPStatus.CREATED
 
 
 @route(app, "/s/model/<int:status>", methods=["POST"])
@@ -63,3 +70,13 @@ def post_optional_with_url_param(param, model: Optional[Model] = None):
     return extend(
         {"name": "Out Of Thin Air!", "url_param": param}, model.dict() if model else {}
     )
+
+
+@route(app, "/node/<int:node_id>", methods=["PUT"])
+def put_node(node_id, node: Node):
+    return "", HTTPStatus.NO_CONTENT
+
+
+@route(app, "/node/<int:node_id>", methods=["PATCH"])
+def patch_node(node_id, node: NodePatch):
+    return "", HTTPStatus.NO_CONTENT

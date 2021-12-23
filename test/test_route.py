@@ -47,6 +47,10 @@ def test_optional_model(client):
     data = json.loads(response.data)
     assert data == {"name": "Out Of Thin Air!"}
 
+    response = client.post("/opt/model", json={"some_key": "some_value"})
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.data == b"Invalid request"
+
     response = client.post("/opt/model", json={"name": "Foobar"})
     data = json.loads(response.data)
     assert data == {"name": "Foobar"}
@@ -60,3 +64,18 @@ def test_optional_model_with_url_param(client):
     response = client.post("/opt/model/the_url_param", json={"name": "Foobar"})
     data = json.loads(response.data)
     assert data == {"name": "Foobar", "url_param": "the_url_param"}
+
+
+def test_put_model(client):
+    response = client.put("/node/1", json={"label": "Foo", "value": 42})
+    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.data == b""
+
+
+def test_patch_model(client):
+    response = client.patch("/node/1", json={"label": "Bar"})
+    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.data == b""
+
+    response = client.patch("/node/1", json={})
+    assert response.status_code == HTTPStatus.BAD_REQUEST
