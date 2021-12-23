@@ -43,11 +43,11 @@ def route(app: Union[Blueprint, Flask], path: str, **kwargs):
             }
 
             for arg, maybe_model in model_map.items():
-                try:
-                    kw[arg] = maybe_model.cls.parse_obj(data)
-                except ValidationError:
-                    if not maybe_model.optional:
-                        raise
+                cls, optional = maybe_model.cls, maybe_model.optional
+                if optional and data is None:
+                    kw[arg] = None
+                else:
+                    kw[arg] = cls.parse_obj(data)
 
             payload = fn(*args, **kw)
 
