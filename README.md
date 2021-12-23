@@ -129,7 +129,7 @@ def create_model(model: Model):
     return {"id": db_model.id}, HTTPStatus.CREATED
 ```
 
-Here's an example of a POST request to the endpoint where the requirements are met.
+Here's an example of a successful POST request to the endpoint.
 
 ```bash
 $ http --verbose :5000/model name=Foo value=5
@@ -158,16 +158,22 @@ Server: Werkzeug/2.0.2 Python/3.8.10
 }
 ```
 
-Requests to the endpoint that do not observe the requirements to create an instance of `Model`
-trigger a `ValidationError` exception. If the exception goes unhandled, Flask generates a `500`
-(Internal Server Error) response in return. A perhaps more appropriate response would be `400` (Bad
-Request), to inform the client that the information it provided is breaching the  lackluster.
+Requests to the endpoint that fail to meet the contract exposed by the definition of `Model` will
+trigger a `ValidationError` exception, as `pydantic` can't instance the model off of the request
+data. If the exception goes unhandled, Flask generates a `500` (Internal Server Error) response in
+return. A perhaps more appropriate response would be `400` (Bad Request), to inform the client
+that the information it provided is breaching the requirements or it's lackluster.
+
+We can register a custom error handler to respond to `ValidationError` exceptions.
 
 ```python
-@app.errorhandler(ValiationError)
+@app.errorhandler(ValidationError)
 def handle_valiation_error(err):
     return str(err), HTTPStatus.BAD_REQUEST
 ```
+
+If a request fails to produce a valid instance of `Model` to be passed along to the endpoint, the
+endpoint isn't invoked at all.
 
 ```bash
 $ echo '{"name": "Foo", "value": null}' | http :5000/model
