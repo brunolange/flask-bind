@@ -9,11 +9,22 @@ from pydantic import BaseModel, ValidationError
 
 from .utils import MaybeModel, get_maybe_model
 
+
 __author__ = "Bruno Lange"
 __email__ = "blangeram@gmail.com"
 __license__ = "MIT"
 
+
 def route(app: Union[Blueprint, Flask], path: str, **kwargs):
+    """A near drop-in replacement for Flask's standard router.
+
+    Beyond the tokenization for url parameters, `route` also fulfills the decorated endpoint's
+    requirement for annotated arguments that represent pydantic models.
+
+    The models are constructed from the JSON data in the request's body. A `ValidationError` is
+    thrown if the model can't be constructed.
+    """
+
     def outer(fn):
         sig = inspect.signature(fn)
 
