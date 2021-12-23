@@ -19,7 +19,7 @@ from models import User
 
 app = Flask(__name__)
 
-@route.app(app, "/user", methods=["POST"])
+@route(app, "/user", methods=["POST"])
 def create_user(user: User):
     # ... add user to the database
     return {"id": user.id}, HTTPStatus.CREATED
