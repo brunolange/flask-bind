@@ -171,8 +171,10 @@ def handle_valiation_error(err):
     return str(err), HTTPStatus.BAD_REQUEST
 ```
 
-If a request fails to produce a valid instance of `Model` to be passed along to the endpoint, the
-endpoint isn't invoked at all.
+In the example below, we simulate a request that breaks the endpoint's contract. `Model` requires a
+string for its `value` property but the client sends `null` instead. The `route` decorator, unable
+to yield a valid instance of `Model` with which to call `get_model`, throws a `ValidationError`,
+which in turn produces the `400` response.
 
 ```bash
 $ echo '{"name": "Foo", "value": null}' | http :5000/model
