@@ -85,9 +85,9 @@ server might expect from the client) by declaring an argument that encapsulates 
 + def create_model(model: Model):
 ```
 
-In this example, the `create_model` is unequivocally broadcasting to its consumers that it needs
-an instance of `Model` to operate. Looking at `Model`, we can easily inspect what it is composed of
-and what rules it must observe.
+In this example, the `create_model` endpoint is unequivocally broadcasting to its consumers that
+it needs an instance of `Model` to operate. Looking at `Model`, we can easily inspect what it is
+composed of and what rules it must observe.
 
 `pydantic` is a particularly well-suited tool for the task of defining such models because it
 leverages Python's type hints to clearly expose and reliably validate the data inside an
