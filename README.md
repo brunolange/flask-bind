@@ -159,7 +159,7 @@ Server: Werkzeug/2.0.2 Python/3.8.10
 ```
 
 Requests to the endpoint that fail to meet the contract exposed by the definition of `Model` will
-trigger a `ValidationError` exception, as `pydantic` can't instance the model off of the request
+trigger a `ValidationError` exception, as `pydantic` can't instantiate the model off of the request
 data. If the exception goes unhandled, Flask generates a `500` (Internal Server Error) response in
 return. A perhaps more appropriate response would be `400` (Bad Request), to inform the client
 that the information it provided is breaching the requirements or it's lackluster.
