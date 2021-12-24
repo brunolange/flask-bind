@@ -71,9 +71,16 @@ def test_put_model(client):
     assert response.status_code == HTTPStatus.NO_CONTENT
     assert response.data == b""
 
+    response = client.put("/node/1", json={"label": "Bar"})
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
 
 def test_patch_model(client):
     response = client.patch("/node/1", json={"label": "Bar"})
+    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.data == b""
+
+    response = client.patch("/node/1", json={"label": "Bar", "value": 1729})
     assert response.status_code == HTTPStatus.NO_CONTENT
     assert response.data == b""
 
