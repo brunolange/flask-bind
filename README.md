@@ -162,9 +162,8 @@ Requests to the endpoint that fail to meet the contract exposed by the definitio
 trigger a `ValidationError` exception, as `pydantic` can't instantiate the model off of the request
 data. If the exception goes unhandled, Flask generates a `500` (Internal Server Error) response in
 return. A perhaps more appropriate response would be `400` (Bad Request), to inform the client
-that the information it provided is breaching the requirements or it's lackluster.
-
-We can register a custom error handler to respond to `ValidationError` exceptions.
+that the information it provided is breaching the requirements or it's lackluster. We can this
+register a custom error handler to respond to `ValidationError` exceptions.
 
 ```python
 @app.errorhandler(ValidationError)
