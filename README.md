@@ -10,6 +10,10 @@ models.
 ## Usage
 
 ```python
+from flask_bind.decorators import route
+from pydantic import BaseModel, EmailField, SecretStr
+...
+
 class Account(BaseModel):
     email: EmailField
     password: SecretStr
