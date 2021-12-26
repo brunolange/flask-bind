@@ -10,181 +10,211 @@ models.
 ## Usage
 
 ```python
-from http import HTTPStatus
-
-from flask import app
 from flask_bind.decorators import route
+from pydantic import BaseModel, EmailStr, SecretStr
+...
 
-from models import User
+class Account(BaseModel):
+    email: EmailStr
+    password: SecretStr
+    age: Optional[int]
 
-app = Flask(__name__)
-
-@route(app, "/user", methods=["POST"])
-def create_user(user: User):
-    # ... add user to the database
-    return {"id": user.id}, HTTPStatus.CREATED
+@route(app, "/account", methods=["POST"])
+def create_account(account: Account):
+    # ... add new account to the database
+    return {"id": account_id}, HTTPStatus.CREATED
 ```
 
 ## Motivation
 
-Take the following Flask endpoint. It is responsible for creating a hypothetical model in response to
-`POST` requests to the `/model` route.
+Suppose our application supports the creation of new users by accepting `POST` requests to the
+`"/user"` route. Your task is to understand exactly how the endpoint operates - what it requires
+from the client in order to perform its objective. So you pull up the source and glance at its
+definition, which looks something like this:
 
 ```python
-@app.route("/model", methods=["POST"])
-def create_model():
+@app.route("/user", methods=["POST"])
+def create_user():
     data = request.json()
     if not data:
         abort(400, "Missing data")
 
-    name = data.get("name")
+    name = data.get("name", "").strip()
     if not name:
         abort(400, "Name is required")
 
-    if not isinstance(name, str):
-        abort(400, "Invalid name")
+    if not insinstance(name, str):
+        abort(400, "Excepted 'name' to be a string")
 
-    value = data.get("value")
-    if not value:
-        abort(400, "Value is required")
+    about = data.get("about", "").strip()
+    if not insinstance(about, str):
+        abort(400, "Excepted 'about' to be a string")
 
-    if not instance(value, int):
-        abort(400, "Invalid value")
+    if len(about) > 1000:
+        abort(400, "About must not exceed 1000 characters")
 
-    if value < len(name):
-        abort(400, f"Value must not be smaller than {len(name)}")
+    if not "email" in data:
+        abort(400, "Missing email")
 
-    db_model = DBModel(name=name, value=value)
-    db.sesson.add(db_model)
+    email = data["email"]
+    if not is_valid_email(email):
+        abort(400, "invalid email")
+
+    user = User(name=name, about=about, email=email)
+
+    db.session.add(user)
     db.session.commit()
 
-    return {"id": db_model.id}, HTTPStatus.CREATED
+    return {"id": user.id}, HTTPStatus.CREATED
 ```
 
-Looking at the endpoint's implementation, it is not at all obvious what kind of data is expected
-from the client. In order to extract that information, one would have no option but to go through
-the entire endpoint's implementation and keep track of how it consumes data that comes off of the
-global `request` variable.
+Though it looks reasonable and somewhat structured, it is not at all obvious what the "rules of
+engagement" are. Let's go through the implementation to see if we can figure it out.
 
-In this simple example, we can infer that the request must feature two keys, `name` and `value`,
-and that the values associated with these keys must be of types `str` and `int`, respectively.
-Furthermore, a seemingly arbitrary business rule dictates that the value cannot be smaller than
-the length of the provided string. While it isn't too hard to dig out this "contract" from the
-code, things can get much more complicated if the endpoint invokes other auxiliary functions or
-makes use of other classes that are each at liberty to query the request data for information.
+First, the endpoint expects JSON data in the request body, which is captured in the `data`
+variable. If the request does not have any data, we abort with a `HTTPStatus.BAD_REQUEST` code.
 
-### Exposing the "contract"
+```python
+data = request.json()
+if not data:
+    abort(400, "Missing data")
+```
 
-Pure functions unambiguously express their "requirements" in terms of their inputs. This follows
-very naturally from how functions are invoked by feeding it their inputs. We can borrow from this
-concept to determine exactly what an endpoint might expect from the request payload (or what the
-server might expect from the client) by declaring an argument that encapsulates those requirements.
+We can then infer that `data` must be a dictionary since the `get` method is invoked to extract
+a `name` key, which must represent a non-empty string. Again, if those conditions aren't met, we
+report `BAD_REQUEST` back to the client.
+
+```python
+name = data.get("name", "").strip()
+if not name:
+    abort(400, "Name is required")
+```
+
+The `about` key is optional but, if a value is sent, it must be a string with no more than 1000
+characters.
+
+```python
+about = data.get("about", "")
+if not insinstance(about, str):
+    abort(400, "Excepted 'about' to be a string")
+
+if len(about) > 1000:
+    abort(400, "About must not exceed 1000 characters")
+```
+
+Finally, the endpoint also expects to receive a valid email in the aptly named `email` key.
+
+While it wasn't too hard to dig out this "contract" in this simple example, things can get much
+more complicated if the endpoint invokes other auxiliary functions or makes use of classes that
+are each at liberty to query the request body for information.
+
+You could also argue that the validation carried out by the endpoint imbues some duplication as
+it imperatively checks for valid strings for multiple keys.
+
+If our goal is to expose the endpoint's interface, the implicit protocol that the clients must
+follow in order to properly issue their requests, then this imperative, "free-for-all" approach to
+accessing and validating the request falls short as you're left with no choice but to follow the
+entire endpoint's implementation whilst keeping track of where and how the request information is
+consumed.
+
+### Taming the complexity
+
+In functional programming, functions express their "requirements" very naturally in terms of
+their inputs. After all, functions can't be called unless you provide them with all the inputs they
+need.
+
+Flask endpoints could borrow this concept to declare what they nede in order to operate a certain
+task. From our example, we determined that `create_model` needs to pull a lot of information from a
+dictionary representation of the request body. However, the universe of dictionaries is far too
+permissive for it to provide the structure needed for us to gain any insight into the endpoint's
+requirements. We need something more restrictive, more structured, to more rigorously convey what
+the endpoint demands.
+
+Python 3.5 introduced _type hints_ to the language specification. Even though the Python
+interpreter itself is not concerned with types, 3rd partytools have largely leveraged this feature
+to provide static type analysis.
+
+Remarkably, `pydantic` uses type annotations to enforce them at runtime, providing detailed error
+messages when validation fails. It is therefore a particularly well-suited tool for the task of
+defining the requirements for our Flask endpoints, and it is indeed what the FastAPI framework
+employs.
+
+In our example, we can define the following model to describe the request payload to the
+`create_user` endpoint.
+
+```python
+from typing import Optional
+from pydantic import BaseModel, EmailStr, constr
+
+class NewUser(BaseModel):
+    name: constr(strip_whitespace=True, min_length=1)
+    about: Optional[constr(strip_whitespace=True, min_length=1)]
+    email: EmailStr
+```
+
+Following the defintion, we can thus `bind` this model to the endpoint, so that it can
+unequivocally broadcast to its consumers that it needs an instance of `NewUser` to operate.
 
 ```diff
-- def create_model():
-+ def create_model(model: Model):
+- def create_user():
++ def create_user(new_user: NewUser):
 ```
 
-In this example, the `create_model` endpoint is unequivocally broadcasting to its consumers that
-it needs an instance of `Model` to operate. Looking at `Model`, we can easily inspect what it is
-composed of and what rules it must observe.
+Finally, we decorate the enpoint with the `route` decorator provided by `flask-bind` so that it
+can assemble an instance of `User` from the request body and pass it along to the endpoint whenever
+it is invoked.
 
-`pydantic` is a particularly well-suited tool for the task of defining such models because it
-leverages Python's type hints to clearly expose and reliably validate the data inside an
-application.
-
-```python
-from pydantic import BaseModel
-
-class Model(BaseModel):
-    name: str
-    value: int
-
-    @root_validator
-    def some_business_rule(cls, values):
-        value, name = values["value"], values["name"]
-        if value < len(name):
-            raise ValueError(f"Value must not be smaller than {len(name)}")
-        return values
+```diff
+- @app.route("/user", methods=["POST"])
++ @route(app, "/user", methods=["POST"])
 ```
 
-Once this model is defined, we can then _bind_ it to the endpoint through the `@route` decorator.
-The decorator will take care of sourcing the required instance of `Model` from the request data and
-pass it to the endpoint. The endpoint, in turn, can then focus on its own operation since it knows
-that all of its requirements have been met, otherwise it could not even have been invoked in the
-first place.
-
-Having these guarantees met, the endpoint's implementation becomes trivial:
+The endpoint, in turn, can then focus on its own operation since it knows that all of its
+requirements have been met. Otherwise, it could not even have been invoked in the first place.
+The implementation then becomes trivial:
 
 ```python
-from flask_bind import route
+@route(app, "/user", methods=["POST"])
+def create_model(new_user: NewUser):
 
-@route(app, "/model", methods=["POST"])
-def create_model(model: Model):
+    user = User(name=new_user.name, about=new_user.about, email=new_user.email)
 
-    db_model = DBModel(name=model.name, value=model.value)
-    db.sesson.add(db_model)
+    db.session.add(user)
     db.session.commit()
 
-    return {"id": db_model.id}, HTTPStatus.CREATED
+    return {"id": user.id}, HTTPStatus.CREATED
 ```
 
-Here's an example of a successful POST request to the endpoint.
+More importantly, if you need to know under what conditions the endpoint is capable of operating,
+you need to look no further than the specification of the `NewUser` class. The type annotations
+will tell you precisely what keys the endpoint expects, as well as any other rules that apply.
 
-```bash
-$ http --verbose :5000/model name=Foo value=5
-POST /model HTTP/1.1
-Accept: application/json, */*
-Accept-Encoding: gzip, deflate
-Connection: keep-alive
-Content-Length: 29
-Content-Type: application/json
-Host: localhost:5000
-User-Agent: HTTPie/1.0.3
+## Error handling
 
-{
-    "name": "Foo",
-    "value": "5"
-}
-
-HTTP/1.0 201 CREATED
-Content-Length: 17
-Content-Type: application/json
-Date: Thu, 23 Dec 2021 21:51:35 GMT
-Server: Werkzeug/2.0.2 Python/3.8.10
-
-{
-    "id": 1001
-}
-```
-
-Requests to the endpoint that fail to meet the contract exposed by the definition of `Model` will
-trigger a `ValidationError` exception, as `pydantic` can't instantiate the model off of the request
-data. If the exception goes unhandled, Flask generates a `500` (Internal Server Error) response in
-return. A perhaps more appropriate response would be `400` (Bad Request), to inform the client
-that the information it provided is breaching the requirements or it's lackluster. We can this
-register a custom error handler to respond to `ValidationError` exceptions.
+A `ValidationError` exception is thrown in response to any requests to the `create_user` endpoint
+that fail to build a valid instance of `NewUser`. Unless directed otherwise, Flask will generate
+a 500 (Internal Server Error) response in such cases. A perhaps more suitable response would be
+400 (Bad Request) to indicate to the client that the information it provided is breaching the
+requirements or it's lackluster in any sense.
 
 ```python
 @app.errorhandler(ValidationError)
-def handle_valiation_error(err):
+def handle_validation_error(err: ValidationError):
     return str(err), HTTPStatus.BAD_REQUEST
 ```
 
-In the example below, we simulate a request that breaks the endpoint's contract. `Model` requires a
-string for its `value` property but the client sends `null` instead. The `route` decorator, unable
-to yield a valid instance of `Model` with which to call `get_model`, throws a `ValidationError`,
-which in turn produces the `400` response.
+In doing so, here's an example of how Flask responds to a request that fails to provide
+`POST /user` with the information it requires:
 
 ```bash
-$ echo '{"name": "Foo", "value": null}' | http :5000/model
+$ echo '{"name": "John Doe", "email": null}' | http :5000/user
 HTTP/1.0 400 BAD REQUEST
-Content-Length: 100
+Content-Length: 102
 Content-Type: text/html; charset=utf-8
-Date: Thu, 23 Dec 2021 22:05:16 GMT
+Date: Sun, 26 Dec 2021 17:11:55 GMT
 Server: Werkzeug/2.0.2 Python/3.8.10
 
-1 validation error for Model
-value
+1 validation error for NewUser
+email
   none is not an allowed value (type=type_error.none.not_allowed)
 ```
