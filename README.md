@@ -11,11 +11,11 @@ models.
 
 ```python
 from flask_bind.decorators import route
-from pydantic import BaseModel, EmailField, SecretStr
+from pydantic import BaseModel, EmailStr, SecretStr
 ...
 
 class Account(BaseModel):
-    email: EmailField
+    email: EmailStr
     password: SecretStr
     age: Optional[int]
 
@@ -30,7 +30,7 @@ def create_account(account: Account):
 Suppose our application supports the creation of new users by accepting `POST` requests to the
 `"/user"` route. Your task is to understand exactly how the endpoint operates - what it requires
 from the client in order to perform its objective. So you pull up the source and glance at its
-definition, which loooks something like this:
+definition, which looks something like this:
 
 ```python
 @app.route("/user", methods=["POST"])
@@ -47,7 +47,7 @@ def create_user():
         abort(400, "Excepted 'name' to be a string")
 
     about = data.get("about", "").strip()
-    if not insinstance(name, about):
+    if not insinstance(about, str):
         abort(400, "Excepted 'about' to be a string")
 
     if len(about) > 1000:
@@ -102,7 +102,7 @@ if len(about) > 1000:
     abort(400, "About must not exceed 1000 characters")
 ```
 
-Finally, the endpoint also expects to receive a valid email.
+Finally, the endpoint also expects to receive a valid email in the aptly named `email` key.
 
 While it wasn't too hard to dig out this "contract" in this simple example, things can get much
 more complicated if the endpoint invokes other auxiliary functions or makes use of classes that
@@ -113,7 +113,7 @@ it imperatively checks for valid strings for multiple keys.
 
 If our goal is to expose the endpoint's interface, the implicit protocol that the clients must
 follow in order to properly issue their requests, then this imperative, "free-for-all" approach to
-accessing and validating the request falls short as you're left with no choice but the follow the
+accessing and validating the request falls short as you're left with no choice but to follow the
 entire endpoint's implementation whilst keeping track of where and how the request information is
 consumed.
 
@@ -121,35 +121,39 @@ consumed.
 
 In functional programming, functions express their "requirements" very naturally in terms of
 their inputs. After all, functions can't be called unless you provide them with all the inputs they
-require.
+need.
 
-Endpoints could borrow this concept to declare what they nede in order to operate a certain task.
-From our example, we determined that `create_model` needs to pull a lot of information from a
+Flask endpoints could borrow this concept to declare what they nede in order to operate a certain
+task. From our example, we determined that `create_model` needs to pull a lot of information from a
 dictionary representation of the request body. However, the universe of dictionaries is far too
-permissive for it to provide useful structures. We need something more restrictive, more
-structured, to more rigorously convey what an endpoint requires.
+permissive for it to provide the structure needed for us to gain any insight into the endpoint's
+requirements. We need something more restrictive, more structured, to more rigorously convey what
+the endpoint demands.
 
-Python 3.5 introduced _type hints_. Even though the Python interpreter itself is not concerned
-with types, this language feature enables 3rd part tools to provide static type analysis.
+Python 3.5 introduced _type hints_ to the language specification. Even though the Python
+interpreter itself is not concerned with types, 3rd partytools have largely leveraged this feature
+to provide static type analysis.
 
-In particular, `pydantic` uses type annotations to enforce them at runtime, providing detailed
-error mesages when validation fails. It is therefore a particularly well-suited tool for the task
-of defining the requirements for our endpoints, and it is indeed what the FastAPI framework uses.
+Remarkably, `pydantic` uses type annotations to enforce them at runtime, providing detailed error
+messages when validation fails. It is therefore a particularly well-suited tool for the task of
+defining the requirements for our Flask endpoints, and it is indeed what the FastAPI framework
+employs.
 
 In our example, we can define the following model to describe the request payload to the
 `create_user` endpoint.
 
 ```python
-from pydantic import BaseModel, EmailField, constr
+from typing import Optional
+from pydantic import BaseModel, EmailStr, constr
 
 class NewUser(BaseModel):
     name: constr(strip_whitespace=True, min_length=1)
     about: Optional[constr(strip_whitespace=True, min_length=1)]
-    email: EmailField
+    email: EmailStr
 ```
 
-Following the defintion, we can `bind` this model to the endpoint, so that it can unequivocally
-broadcast to its consumers that it needs an instance of `NewUser` to operate.
+Following the defintion, we can thus `bind` this model to the endpoint, so that it can
+unequivocally broadcast to its consumers that it needs an instance of `NewUser` to operate.
 
 ```diff
 - def create_user():
@@ -184,3 +188,33 @@ def create_model(new_user: NewUser):
 More importantly, if you need to know under what conditions the endpoint is capable of operating,
 you need to look no further than the specification of the `NewUser` class. The type annotations
 will tell you precisely what keys the endpoint expects, as well as any other rules that apply.
+
+## Error handling
+
+A `ValidationError` exception is thrown in response to any requests to the `create_user` endpoint
+that fail to build a valid instance of `NewUser`. Unless directed otherwise, Flask will generate
+a 500 (Internal Server Error) response in such cases. A perhaps more suitable response would be
+400 (Bad Request) to indicate to the client that the information it provided is breaching the
+requirements or it's lackluster in any sense.
+
+```python
+@app.errorhandler(ValidationError)
+def handle_validation_error(err: ValidationError):
+    return str(err), HTTPStatus.BAD_REQUEST
+```
+
+In doing so, here's an example of how Flask responds to a request that fails to provide
+`POST /user` with the information it requires:
+
+```bash
+$ echo '{"name": "John Doe", "email": null}' | http :5000/user
+HTTP/1.0 400 BAD REQUEST
+Content-Length: 102
+Content-Type: text/html; charset=utf-8
+Date: Sun, 26 Dec 2021 17:11:55 GMT
+Server: Werkzeug/2.0.2 Python/3.8.10
+
+1 validation error for NewUser
+email
+  none is not an allowed value (type=type_error.none.not_allowed)
+```
