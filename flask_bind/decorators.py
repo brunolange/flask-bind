@@ -5,7 +5,7 @@ from typing import Dict, Union
 
 from flask import Blueprint, Flask, request
 from flask.wrappers import Response
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from .utils import MaybeModel, get_maybe_model
 
