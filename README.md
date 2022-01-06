@@ -123,7 +123,7 @@ In functional programming, functions express their "requirements" very naturally
 their inputs. After all, functions can't be called unless you provide them with all the inputs they
 need.
 
-Flask endpoints could borrow this concept to declare what they nede in order to operate a certain
+Flask endpoints could borrow this concept to declare what they need in order to operate a certain
 task. From our example, we determined that `create_model` needs to pull a lot of information from a
 dictionary representation of the request body. However, the universe of dictionaries is far too
 permissive for it to provide the structure needed for us to gain any insight into the endpoint's
@@ -152,7 +152,7 @@ class NewUser(BaseModel):
     email: EmailStr
 ```
 
-Following the defintion, we can thus `bind` this model to the endpoint, so that it can
+Following the defintion, we can thus _bind_ this model to the endpoint, so that it can
 unequivocally broadcast to its consumers that it needs an instance of `NewUser` to operate.
 
 ```diff
