@@ -21,7 +21,7 @@ class Account(BaseModel):
 
 @route(app, "/account", methods=["POST"])
 def create_account(account: Account):
-    # ... add new account to the database
+    account_id = db.create_account(account.email, account.password)
     return {"id": account_id}, HTTPStatus.CREATED
 ```
 
