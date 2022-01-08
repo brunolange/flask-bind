@@ -2,6 +2,8 @@
 
 Binding contracts for Flask's routing system. ![Tests](https://github.com/brunolange/flask-bind/actions/workflows/test.yml/badge.svg)
 
+---
+
 Heavily influenced by [FastAPI](https://fastapi.tiangolo.com/), `flask-bind` provides a nearly
 drop-in replacement for Flask's `app.route` decorator to fulfill the decorated endpoint's
 requirement for annotated arguments that represent [pydantic](https://pydantic-docs.helpmanual.io/)
@@ -28,7 +30,7 @@ def create_account(account: Account):
 ## Motivation
 
 Suppose our application supports the creation of new users by accepting `POST` requests to the
-`"/user"` route. Your task is to understand exactly how the endpoint operates - what it requires
+`/user` route. Your task is to understand exactly how the endpoint operates - what it requires
 from the client in order to perform its objective. So you pull up the source and glance at its
 definition, which looks something like this:
 
@@ -131,13 +133,13 @@ requirements. We need something more restrictive, more structured, to more rigor
 the endpoint demands.
 
 Python 3.5 introduced _type hints_ to the language specification. Even though the Python
-interpreter itself is not concerned with types, 3rd partytools have largely leveraged this feature
-to provide static type analysis.
+interpreter itself is not concerned with types, third-party tools have largely leveraged this
+feature to provide static type analysis.
 
-Remarkably, `pydantic` uses type annotations to enforce them at runtime, providing detailed error
-messages when validation fails. It is therefore a particularly well-suited tool for the task of
-defining the requirements for our Flask endpoints, and it is indeed what the FastAPI framework
-employs.
+Remarkably, [pydantic](https://pydantic-docs.helpmanual.io/) uses type annotations to enforce them
+at runtime, providing detailed error messages when validation fails. It is therefore a particularly
+well-suited tool for the task of defining the requirements for our Flask endpoints, and it is
+indeed what the FastAPI framework employs.
 
 In our example, we can define the following model to describe the request payload to the
 `create_user` endpoint.
