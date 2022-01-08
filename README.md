@@ -2,6 +2,8 @@
 
 ## Binding contracts for Flask's routing system
 
+![Tests](https://github.com/brunolange/flask-bind/actions/workflows/test.yml/badge.svg)
+
 Heavily influenced by [FastAPI](https://fastapi.tiangolo.com/), `flask-bind` provides a nearly
 drop-in replacement for Flask's `app.route` decorator to fulfill the decorated endpoint's
 requirement for annotated arguments that represent [pydantic](https://pydantic-docs.helpmanual.io/)
