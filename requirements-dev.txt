@@ -3,3 +3,4 @@ pydantic
 mypy
 black
 pytest
+pytest-cov
