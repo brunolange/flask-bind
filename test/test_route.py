@@ -86,3 +86,11 @@ def test_patch_model(client):
 
     response = client.patch("/node/1", json={})
     assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_form_data(client):
+    response = client.post(
+        "/form",
+        data={"username": "user@domain.com", "password": "correcthorsebatterystaple"},
+    )
+    assert response.status_code == HTTPStatus.OK

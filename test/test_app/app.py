@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from flask import Flask, make_response
 from flask_bind.decorators import route
-from pydantic import ValidationError
+from pydantic import BaseModel, SecretStr, ValidationError
 
 from .models import Model, Node, NodePatch
 from .utils import extend
@@ -80,3 +80,13 @@ def put_node(node_id, node: Node):
 @route(app, "/node/<int:node_id>", methods=["PATCH"])
 def patch_node(node_id, node: NodePatch):
     return "", HTTPStatus.NO_CONTENT
+
+
+class Form(BaseModel):
+    username: str
+    password: SecretStr
+
+
+@route(app, "/form", methods=["POST"])
+def post_form(form: Form):
+    return {"username": form.username}

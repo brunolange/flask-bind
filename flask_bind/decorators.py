@@ -31,7 +31,14 @@ def route(app: Union[Blueprint, Flask], path: str, **kwargs):
         @app.route(path, **kwargs)
         @wraps(fn)
         def inner(*args, **kw):
-            data = request.get_json()
+            content_type = request.headers.get("content-type")
+            try:
+                data = {
+                    "application/json": request.get_json,
+                    "application/x-www-form-urlencoded": lambda: request.form,
+                }[content_type]()
+            except KeyError:
+                return fn(*args, **kw)
 
             model_map: Dict[str, MaybeModel] = {
                 arg: maybe_model
