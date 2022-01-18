@@ -27,3 +27,5 @@ jobs:
       run: mypy flask_bind
     - name: Run tests
       run: pytest --cov=flask_bind test
+    - name: Upload coverage
+      uses: codecov/codecov-action@v1
