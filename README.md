@@ -1,6 +1,8 @@
 # flask-bind
 
-Binding contracts for Flask's routing system. ![Tests](https://github.com/brunolange/flask-bind/actions/workflows/test.yml/badge.svg)
+Binding contracts for Flask's routing system.
+![Tests](https://github.com/brunolange/flask-bind/actions/workflows/test.yml/badge.svg)
+![Coverage](https://img.shields.io/codecov/c/github/brunolange/flask-bind?color=%2334D058)
 
 ---
 
