@@ -29,11 +29,7 @@ def get_maybe_model(parameter: inspect.Parameter) -> Optional[MaybeModel]:
     except ValueError:
         return None
 
-    NoneType = type(None)
-    if right is not NoneType:
-        return None
-
-    if issubclass(left, BaseModel):
+    if issubclass(left, BaseModel) and right is type(None):
         return MaybeModel(cls=left, optional=True)
 
     return None
