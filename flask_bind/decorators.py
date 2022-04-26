@@ -2,7 +2,7 @@ from __future__ import annotations
 import inspect
 from functools import wraps
 from http import HTTPStatus
-from typing import Dict, Union
+from typing import Type
 
 from flask import Blueprint, Flask, request
 from flask.wrappers import Response
@@ -14,6 +14,10 @@ from .utils import MaybeModel, get_maybe_model
 __author__ = "Bruno Lange"
 __email__ = "blangeram@gmail.com"
 __license__ = "MIT"
+
+
+class NoData:
+    """An empty class to signal that there is no data from which to build models"""
 
 def route(app: Blueprint | Flask, path: str, **kwargs):
     """A near drop-in replacement for Flask's standard router.
@@ -31,13 +35,17 @@ def route(app: Blueprint | Flask, path: str, **kwargs):
         @app.route(path, **kwargs)
         @wraps(fn)
         def inner(*args, **kw):
-            content_type = request.headers.get("content-type")
+            content_type = request.headers.get("content-type", "")
+            data: dict | Type[NoData]
             try:
                 data = {
                     "application/json": request.get_json,
                     "application/x-www-form-urlencoded": lambda: request.form,
                 }[content_type]()
             except KeyError:
+                data = NoData
+
+            if data is NoData:
                 return fn(*args, **kw)
 
             model_map: dict[str, MaybeModel] = {
