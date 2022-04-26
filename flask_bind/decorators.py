@@ -1,3 +1,4 @@
+from __future__ import annotations
 import inspect
 from functools import wraps
 from http import HTTPStatus
@@ -14,8 +15,7 @@ __author__ = "Bruno Lange"
 __email__ = "blangeram@gmail.com"
 __license__ = "MIT"
 
-
-def route(app: Union[Blueprint, Flask], path: str, **kwargs):
+def route(app: Blueprint | Flask, path: str, **kwargs):
     """A near drop-in replacement for Flask's standard router.
 
     Beyond the tokenization for url parameters, `route` also fulfills the decorated endpoint's
@@ -40,7 +40,7 @@ def route(app: Union[Blueprint, Flask], path: str, **kwargs):
             except KeyError:
                 return fn(*args, **kw)
 
-            model_map: Dict[str, MaybeModel] = {
+            model_map: dict[str, MaybeModel] = {
                 arg: maybe_model
                 for arg, maybe_model in [
                     (a, get_maybe_model(parameter))
