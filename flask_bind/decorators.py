@@ -19,6 +19,7 @@ __license__ = "MIT"
 class NoData:
     """An empty class to signal that there is no data from which to build models"""
 
+
 def route(app: Blueprint | Flask, path: str, **kwargs):
     """A near drop-in replacement for Flask's standard router.
 
